@@ -107,3 +107,47 @@ export function computePlane(n, lim, ia, ib, ic, c0, pos, dlR, dlI, nSrc, onProg
   if (onProgress) onProgress(1);
   return { amp, daR, daI, dbR, dbI };
 }
+
+// Compute the full complex B-field phasor on a 3D grid.
+// Returns { amp, bxR, bxI, byR, byI, bzR, bzI } each Float64Array[n³],
+// indexed as arr[ix*n²+iy*n+iz].  Instantaneous field at time t:
+//   B(t) = bR*cos(t) − bI*sin(t)
+export function computeVolume(n, lim, pos, dlR, dlI, nSrc, onProgress) {
+  const n3 = n * n * n;
+  const amp = new Float64Array(n3);
+  const bxR = new Float64Array(n3), bxI = new Float64Array(n3);
+  const byR = new Float64Array(n3), byI = new Float64Array(n3);
+  const bzR = new Float64Array(n3), bzI = new Float64Array(n3);
+
+  for (let ix = 0; ix < n; ix++) {
+    const px = -lim + 2 * lim * ix / (n - 1);
+    for (let iy = 0; iy < n; iy++) {
+      const py = -lim + 2 * lim * iy / (n - 1);
+      for (let iz = 0; iz < n; iz++) {
+        const pz = -lim + 2 * lim * iz / (n - 1);
+        let brx=0, bry=0, brz=0, bix=0, biy=0, biz=0;
+        for (let s = 0; s < nSrc; s++) {
+          const rx = px - pos[s*3];
+          const ry = py - pos[s*3+1];
+          const rz = pz - pos[s*3+2];
+          const rm2 = rx*rx + ry*ry + rz*rz;
+          if (rm2 < 1e-20) continue;
+          const rm3 = rm2 * Math.sqrt(rm2);
+          brx += (dlR[s*3+1]*rz - dlR[s*3+2]*ry) / rm3;
+          bry += (dlR[s*3+2]*rx - dlR[s*3]   *rz) / rm3;
+          brz += (dlR[s*3]   *ry - dlR[s*3+1]*rx) / rm3;
+          bix += (dlI[s*3+1]*rz - dlI[s*3+2]*ry) / rm3;
+          biy += (dlI[s*3+2]*rx - dlI[s*3]   *rz) / rm3;
+          biz += (dlI[s*3]   *ry - dlI[s*3+1]*rx) / rm3;
+        }
+        const k = ix*n*n + iy*n + iz;
+        bxR[k] = brx * MU0_4PI;  byR[k] = bry * MU0_4PI;  bzR[k] = brz * MU0_4PI;
+        bxI[k] = bix * MU0_4PI;  byI[k] = biy * MU0_4PI;  bzI[k] = biz * MU0_4PI;
+        amp[k] = Math.sqrt(brx*brx + bry*bry + brz*brz + bix*bix + biy*biy + biz*biz) * MU0_4PI;
+      }
+    }
+    if (onProgress && ix % 4 === 0) onProgress((ix + 1) / n);
+  }
+  if (onProgress) onProgress(1);
+  return { amp, bxR, bxI, byR, byI, bzR, bzI };
+}

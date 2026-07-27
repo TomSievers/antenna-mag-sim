@@ -1,5 +1,6 @@
 import { PRESET_NAMES, PRESETS, parseShapeFile } from './shapes.js';
-import { initPlot, setHeatmap, setArrows, setFieldLines, setWires, clearPlot, setTitle } from './renderer.js';
+import { initPlot, setHeatmap, setArrows, setFieldLines, setWires, clearPlot, setTitle,
+         init3DPlot, set3DCones, set3DWires, set3DFieldLines, set3DTitle, clear3DPlot } from './renderer.js';
 
 const N_GRID     = 45;
 const ANT_COLORS = ['#22d3ee', '#f87171', '#4ade80', '#fbbf24'];
@@ -37,6 +38,7 @@ const setStatus = msg => { document.getElementById('status').textContent = msg; 
 
 // ── Init Plotly plots ─────────────────────────────────────────────────────────
 for (const p of PLANES) initPlot(p.divId, p.xL, p.yL, p.title);
+init3DPlot('plot-3d');
 
 // ── Tabs ──────────────────────────────────────────────────────────────────────
 function refreshTabs() {
@@ -90,6 +92,12 @@ function redrawTime() {
       setFieldLines(p.divId, state.heatmaps[p.key], state.timePhase, state.nLines);
     }
   }
+  // 3D: both cones and streamlines are time-variant
+  if (state.vizMode === 'heatmap') {
+    set3DCones('plot-3d', state.heatmaps.vol3d, state.timePhase);
+  } else {
+    set3DFieldLines('plot-3d', state.heatmaps, state.timePhase, state.nLines);
+  }
 }
 
 function redrawViz() {
@@ -102,6 +110,11 @@ function redrawViz() {
       setFieldLines(p.divId, state.heatmaps[p.key], state.timePhase, state.nLines);
     }
   }
+  if (state.vizMode === 'heatmap') {
+    set3DCones('plot-3d', state.heatmaps.vol3d, state.timePhase);
+  } else {
+    set3DFieldLines('plot-3d', state.heatmaps, state.timePhase, state.nLines);
+  }
 }
 
 function setMode(mode) {
@@ -112,12 +125,14 @@ function setMode(mode) {
     'btn grow' + (mode === 'fieldlines' ? ' primary' : ' secondary');
   document.getElementById('fieldlines-opts').style.display =
     mode === 'fieldlines' ? '' : 'none';
+  set3DTitle('plot-3d', mode === 'heatmap' ? '3D  B field' : '3D  field lines');
   redrawViz();
 }
 
 // ── Wires ─────────────────────────────────────────────────────────────────────
 function redrawWires() {
   for (const p of PLANES) setWires(p.divId, state.antennas, p.ia, p.ib);
+  set3DWires('plot-3d', state.antennas);
 }
 
 // ── Worker / compute ──────────────────────────────────────────────────────────
@@ -127,6 +142,7 @@ function compute() {
   stopAnim();
   state.heatmaps = null;
   for (const p of PLANES) clearPlot(p.divId);
+  clear3DPlot('plot-3d');
   setStatus('Computing…');
 
   if (worker) worker.terminate();
@@ -136,7 +152,7 @@ function compute() {
     if (msg.type === 'progress') {
       setStatus(msg.msg);
     } else if (msg.type === 'done') {
-      for (const k of Object.keys(msg.result)) msg.result[k].n = N_GRID;
+      for (const k of ['xy', 'xz', 'yz']) msg.result[k].n = N_GRID;
       state.heatmaps = msg.result;
       redrawViz();
       redrawWires();
@@ -181,6 +197,7 @@ function addAnt() {
   state.selected = n;
   state.heatmaps = null;
   for (const p of PLANES) clearPlot(p.divId);
+  clear3DPlot('plot-3d');
   refreshTabs(); pushSliders(); redrawWires();
   setStatus(`Added A${n + 1}`);
 }
@@ -192,6 +209,7 @@ function removeAnt() {
   state.selected = Math.min(state.selected, state.antennas.length - 1);
   state.heatmaps = null;
   for (const p of PLANES) clearPlot(p.divId);
+  clear3DPlot('plot-3d');
   refreshTabs(); pushSliders(); redrawWires();
   setStatus(`${state.antennas.length} antenna(s)`);
 }
@@ -242,6 +260,7 @@ document.getElementById('btn-clear').onclick = () => {
   stopAnim();
   state.heatmaps = null;
   for (const p of PLANES) clearPlot(p.divId);
+  clear3DPlot('plot-3d');
   setStatus('Cleared');
 };
 
@@ -266,6 +285,7 @@ document.getElementById('btn-shape').onclick = () => {
   cfg().vertices  = Array.from(PRESETS[nxt]());
   state.heatmaps  = null;
   for (const p of PLANES) clearPlot(p.divId);
+  clear3DPlot('plot-3d');
   refreshTabs(); redrawWires();
   setStatus(`A${state.selected + 1}: ${nxt}`);
 };
@@ -281,6 +301,7 @@ document.getElementById('file-input').onchange = async e => {
     cfg().offset    = [0, 0, 0];
     state.heatmaps  = null;
     for (const p of PLANES) clearPlot(p.divId);
+    clear3DPlot('plot-3d');
     refreshTabs(); pushSliders(); redrawWires();
     setStatus(`Loaded: ${file.name}`);
   } catch (err) {
@@ -290,18 +311,19 @@ document.getElementById('file-input').onchange = async e => {
 };
 
 document.getElementById('btn-save').onclick = () => {
-  // Composite the three Plotly canvases into one PNG
-  const divs = PLANES.map(p => document.getElementById(p.divId));
-  const srcs = divs.map(d => d.querySelector('canvas'));
+  const divs = [...PLANES.map(p => document.getElementById(p.divId)), document.getElementById('plot-3d')];
+  const srcs = divs.map(d => d?.querySelector('canvas'));
   if (!srcs[0]) { setStatus('Nothing to save'); return; }
-  const W = 1500, H = 1000;
+  const W = 1600, H = 1000;
+  const hw = W / 2, hh = H / 2;
   const out = Object.assign(document.createElement('canvas'), { width: W, height: H });
   const ctx = out.getContext('2d');
   ctx.fillStyle = '#080810';
   ctx.fillRect(0, 0, W, H);
-  if (srcs[0]) ctx.drawImage(srcs[0], 0, 0, W, H / 2);
-  if (srcs[1]) ctx.drawImage(srcs[1], 0, H / 2, W / 2, H / 2);
-  if (srcs[2]) ctx.drawImage(srcs[2], W / 2, H / 2, W / 2, H / 2);
+  if (srcs[0]) ctx.drawImage(srcs[0], 0,  0,  hw, hh);   // XY  top-left
+  if (srcs[3]) ctx.drawImage(srcs[3], hw, 0,  hw, hh);   // 3D  top-right
+  if (srcs[1]) ctx.drawImage(srcs[1], 0,  hh, hw, hh);   // XZ  bottom-left
+  if (srcs[2]) ctx.drawImage(srcs[2], hw, hh, hw, hh);   // YZ  bottom-right
   const a = Object.assign(document.createElement('a'), {
     download: `field_${state.antennas.length}ant.png`,
     href:     out.toDataURL(),

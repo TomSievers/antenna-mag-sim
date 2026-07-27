@@ -1,4 +1,4 @@
-import { buildSources, mergeSources, computePlane } from './physics.js';
+import { buildSources, mergeSources, computePlane, computeVolume } from './physics.js';
 
 self.onmessage = function (e) {
   const { antennas, n, slices } = e.data;
@@ -44,12 +44,28 @@ self.onmessage = function (e) {
       }),
     );
 
-    result[key] = { ...plane, lim };
+    result[key] = { ...plane, lim, c0 };
     transfers.push(
       plane.amp.buffer, plane.daR.buffer, plane.daI.buffer,
       plane.dbR.buffer, plane.dbI.buffer,
     );
   }
+
+  // Full 3D vector field for cone arrows and true 3D streamline tracing
+  const N3D = 20;
+  self.postMessage({ type: 'progress', msg: 'Computing 3D volume…' });
+  const vol3d = computeVolume(
+    N3D, lim,
+    merged.pos, merged.dlR, merged.dlI, merged.n,
+    frac => self.postMessage({ type: 'progress', msg: `3D: ${Math.round(frac * 100)}%` }),
+  );
+  result.vol3d = { ...vol3d, n: N3D, lim };
+  transfers.push(
+    vol3d.amp.buffer,
+    vol3d.bxR.buffer, vol3d.bxI.buffer,
+    vol3d.byR.buffer, vol3d.byI.buffer,
+    vol3d.bzR.buffer, vol3d.bzI.buffer,
+  );
 
   self.postMessage({ type: 'done', result }, transfers);
 };

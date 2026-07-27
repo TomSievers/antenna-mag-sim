@@ -25,13 +25,11 @@ body { background: var(--bg); color: var(--text); font-family: var(--font);
 #plots  { flex: 1; display: flex; flex-direction: column; gap: 4px;
           padding: 6px 4px 6px 6px; min-width: 0; }
 
-#plots-bottom { display: flex; flex: 1; gap: 4px; }
+#plots-top, #plots-bottom { display: flex; flex: 1; gap: 4px; }
 
 .plot-div { flex: 1; border-radius: var(--radius);
             border: 1px solid var(--border); overflow: hidden;
             background: var(--surface); }
-
-#plot-xy { flex: 0 0 55%; }
 
 /* ── Panel ─────────────────────────────────────────────────────── */
 #panel {
