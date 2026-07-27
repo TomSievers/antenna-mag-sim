@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>134 kHz Antenna Field Simulator</title>
+  <link rel="stylesheet" href="/src/style.css" />
+</head>
+
+<body>
+  <div id="app">
+
+    <div id="plots">
+      <div id="plot-xy" class="plot-div"></div>
+      <div id="plots-bottom">
+        <div id="plot-xz" class="plot-div"></div>
+        <div id="plot-yz" class="plot-div"></div>
+      </div>
+    </div>
+
+    <aside id="panel">
+      <header>134 kHz Field Simulator</header>
+
+      <section>
+        <label class="section-label">Antennas</label>
+        <div id="ant-tabs"></div>
+        <div class="row gap-sm">
+          <button id="btn-add" class="btn success">+ Add</button>
+          <button id="btn-rem" class="btn danger">− Remove</button>
+        </div>
+      </section>
+
+      <section>
+        <div class="row gap-sm">
+          <button id="btn-shape" class="btn secondary grow">Circular Loop ▶</button>
+          <label class="btn secondary load-lbl" title="Load shape from .txt file">
+            Load…
+            <input type="file" id="file-input" accept=".txt" />
+          </label>
+        </div>
+      </section>
+
+      <section>
+        <label class="section-label">Selected Antenna</label>
+        <div class="slider-row"><span>Phase °</span> <input type="range" id="sl-phase" min="0" max="359" step="1"
+            value="0" /> <span id="val-phase" class="val">0</span></div>
+        <div class="slider-row"><span>X offset</span> <input type="range" id="sl-x" min="-8" max="8" step="0.05"
+            value="0" /> <span id="val-x" class="val">0.00</span></div>
+        <div class="slider-row"><span>Y offset</span> <input type="range" id="sl-y" min="-8" max="8" step="0.05"
+            value="0" /> <span id="val-y" class="val">0.00</span></div>
+        <div class="slider-row"><span>Z offset</span> <input type="range" id="sl-z" min="-8" max="8" step="0.05"
+            value="0" /> <span id="val-z" class="val">0.00</span></div>
+        <div class="slider-row"><span>Amplitude</span> <input type="range" id="sl-amp" min="0" max="1" step="0.01"
+            value="1" /> <span id="val-amp" class="val">1.00</span></div>
+      </section>
+
+      <section>
+        <label class="section-label">Slice Positions</label>
+        <div class="slider-row"><span>XY z =</span> <input type="range" id="sl-sz" min="-8" max="8" step="0.05"
+            value="0" /> <span id="val-sz" class="val">0.00</span></div>
+        <div class="slider-row"><span>XZ y =</span> <input type="range" id="sl-sy" min="-8" max="8" step="0.05"
+            value="0" /> <span id="val-sy" class="val">0.00</span></div>
+        <div class="slider-row"><span>YZ x =</span> <input type="range" id="sl-sx" min="-8" max="8" step="0.05"
+            value="0" /> <span id="val-sx" class="val">0.00</span></div>
+      </section>
+
+      <section>
+        <label class="section-label">Visualization</label>
+        <div class="row gap-sm">
+          <button id="btn-mode-heat" class="btn primary   grow">Heatmap</button>
+          <button id="btn-mode-lines" class="btn secondary grow">Field Lines</button>
+        </div>
+        <div id="fieldlines-opts" style="display:none">
+          <div class="slider-row" style="margin-top:4px">
+            <span>Lines</span>
+            <input type="range" id="sl-nlines" min="1" max="20" step="1" value="6" />
+            <span id="val-nlines" class="val">6</span>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <label class="section-label">Time Animation</label>
+        <div class="slider-row"><span>ωt (°)</span> <input type="range" id="sl-time" min="0" max="359" step="1"
+            value="0" /> <span id="val-time" class="val">0</span></div>
+        <div class="slider-row"><span>Speed</span> <input type="range" id="sl-speed" min="1" max="30" step="1"
+            value="6" /> <span id="val-speed" class="val">6</span></div>
+        <button id="btn-play" class="btn primary full-w">▶ Play</button>
+      </section>
+
+      <section>
+        <button id="btn-compute" class="btn primary full-w large">▶ Compute Field</button>
+        <div class="row gap-sm" style="margin-top:6px">
+          <button id="btn-clear" class="btn secondary grow">Clear</button>
+          <button id="btn-save" class="btn secondary grow">Save PNG</button>
+        </div>
+      </section>
+
+      <footer>
+        <div id="status"></div>
+        <div class="hint">Scroll to zoom · arrows = B direction<br>bright = strong · dark = weak</div>
+      </footer>
+    </aside>
+
+  </div>
+  <script type="module" src="/src/main.js"></script>
+</body>
+
+</html>
