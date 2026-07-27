@@ -1,6 +1,8 @@
-{ pkgs ? import <nixpkgs> {} }:
+{
+  pkgs ? import <nixpkgs> { },
+}:
 pkgs.mkShell {
-  buildInputs = with pkgs; [ nodejs_22 ];
+  buildInputs = with pkgs; [ nodejs_24 ];
   shellHook = ''
     echo "Antenna Simulator — Web Build"
     echo "  npm install     install dependencies"

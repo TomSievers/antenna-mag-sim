@@ -24,16 +24,16 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: "22"
+          node-version: "24"
           cache: npm
-          cache-dependency-path: web/package-lock.json
+          cache-dependency-path: package-lock.json
 
       - name: Install dependencies
-        working-directory: web
+        working-directory: .
         run: npm ci
 
       - name: Build
-        working-directory: web
+        working-directory: .
         run: npm run build
         env:
           # GitHub Pages serves from https://<owner>.github.io/<repo>/
@@ -41,7 +41,7 @@ jobs:
 
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: web/dist
+          path: dist
 
   deploy:
     needs: build
